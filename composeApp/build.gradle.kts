@@ -87,6 +87,23 @@ kotlin {
                  * Logging
                  */
                 implementation(libs.napier)
+
+                /**
+                 * Compose Navigation
+                 */
+                implementation(libs.androidx.navigation.compose)
+
+                /**
+                 * KMP ViewModel
+                 */
+                implementation(libs.androidx.lifecycle.viewmodel.compose)
+
+                /**
+                 * DI
+                 */
+                implementation(libs.koin.compose)
+                implementation(libs.koin.compose.viewmodel)
+
             }
         }
 
@@ -117,11 +134,6 @@ kotlin {
                  * AndroidX Activity Compose
                  */
                 implementation(libs.androidx.activity.compose)
-
-                /**
-                 * DI
-                 */
-                implementation(libs.koin.compose)
             }
         }
 
@@ -182,6 +194,7 @@ sqldelight {
 
 dependencies {
 
+    implementation(libs.androidx.navigation.compose)
     /**
      * Compose UI Tooling
      */

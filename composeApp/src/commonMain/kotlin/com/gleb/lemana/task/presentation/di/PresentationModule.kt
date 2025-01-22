@@ -1,13 +1,32 @@
 package com.gleb.lemana.task.presentation.di
 
-import com.gleb.lemana.task.presentation.screens.cart.CartScreenModel
-import com.gleb.lemana.task.presentation.screens.main.MainScreenModel
-import com.gleb.lemana.task.presentation.screens.shopping_list.ShoppingListScreenModel
+import ProductDetailsViewModel
+import com.gleb.lemana.task.presentation.screens.cart.CartViewModel
+import com.gleb.lemana.task.presentation.screens.main.MainViewModel
+import com.gleb.lemana.task.presentation.screens.shopping_list.ShoppingListViewModel
 import org.koin.dsl.module
 
 val presentationModule = module {
+
     factory {
-        MainScreenModel(
+        MainViewModel(
+            cartRepository = get(),
+            productsService = get(),
+            shoppingListRepository = get()
+        )
+    }
+
+    factory { (productId: Int) ->
+        ProductDetailsViewModel(
+            productId = productId,
+            productsService = get(),
+            cartRepository = get(),
+            shoppingListRepository = get()
+        )
+    }
+
+    factory {
+        ShoppingListViewModel(
             cartRepository = get(),
             productsService = get(),
             shoppingListRepository = get()
@@ -15,15 +34,7 @@ val presentationModule = module {
     }
 
     factory {
-        ShoppingListScreenModel(
-            cartRepository = get(),
-            productsService = get(),
-            shoppingListRepository = get()
-        )
-    }
-
-    factory {
-        CartScreenModel(
+        CartViewModel(
             cartRepository = get(),
             productsService = get(),
         )

@@ -20,95 +20,83 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.koin.getScreenModel
 import com.gleb.lemana.task.presentation.components.CartItem
 import com.gleb.lemana.task.presentation.components.ErrorDisplayingComponent
 import com.gleb.lemana.task.presentation.utils.Colors.primary
+import org.koin.compose.koinInject
 
-class CartScreen : Screen {
+@Composable
+fun CartScreen() {
+    val viewModel: CartViewModel = koinInject()
+    val state by viewModel.state.collectAsState()
 
-    @Composable
-    override fun Content() {
-        val screenModel: CartScreenModel = getScreenModel()
-        val state by screenModel.state.collectAsState()
-
-        when (val currentState = state) {
-            is CartScreenModel.State.Loading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = primary)
-                }
+    when (val currentState = state) {
+        is CartViewModel.State.Loading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = primary)
             }
+        }
 
-            is CartScreenModel.State.Content -> {
-                val products = currentState.products
+        is CartViewModel.State.Content -> {
+            val products = currentState.products
 
-                if (products.isNotEmpty()) {
-                    LazyColumn(
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.Top)
-                    ) {
-                        item {
-                            Text(
-                                text = "Cart",
-                                style = TextStyle(
-                                    color = primary,
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = TextAlign.Center
-                                )
-                            )
-                            Spacer(Modifier.height(32.dp))
-                        }
-                        items(products, key = { it.id }) { item ->
-                            CartItem(
-                                price = item.price,
-                                title = item.title,
-                                imageUri = item.image,
-                                count = item.inCartCount,
-                                onCountChange = { count ->
-                                    screenModel.processIntent(
-                                        if (count == 0) {
-                                            CartScreenModel.Intent.RemoveItem(
-                                                productId = item.id
-                                            )
-                                        } else {
-                                            CartScreenModel.Intent.ChangeItemCount(
-                                                productId = item.id,
-                                                count = count
-                                            )
-                                        }
-                                    )
-                                },
-                            )
-                        }
-                        item { Spacer(Modifier.height(64.dp)) }
-                    }
-                } else {
-                    Box(modifier = Modifier.fillMaxSize()) {
+            if (products.isNotEmpty()) {
+                LazyColumn(
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.Top)
+                ) {
+                    item {
                         Text(
-                            modifier = Modifier.align(Alignment.Center),
-                            text = "Cart is empty :(",
+                            text = "Cart",
                             style = TextStyle(
                                 color = primary,
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
                                 textAlign = TextAlign.Center
-                            )
+                            ),
+                            modifier = Modifier.padding(vertical = 24.dp)
+                        )
+                    }
+                    items(products) { product ->
+                        CartItem(
+                            count = product.inCartCount,
+                            title = product.title,
+                            price = product.price,
+                            imageUri = product.image,
+                            onCountChange = { count ->
+                                viewModel.processIntent(
+                                    CartViewModel.Intent.ChangeItemCount(
+                                        productId = product.id,
+                                        count = count
+                                    )
+                                )
+                            }
                         )
                     }
                 }
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Cart is empty",
+                        style = TextStyle(
+                            color = primary,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                }
             }
+        }
 
-            is CartScreenModel.State.Error -> {
-                ErrorDisplayingComponent(
-                    message = currentState.message,
-                    onClick = {
-                        screenModel.processIntent(CartScreenModel.Intent.LoadCart)
-                    }
-                )
-            }
+        is CartViewModel.State.Error -> {
+            ErrorDisplayingComponent(
+                message = currentState.message,
+                onClick = { viewModel.processIntent(CartViewModel.Intent.LoadCart) }
+            )
         }
     }
 }

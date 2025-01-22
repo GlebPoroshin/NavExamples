@@ -1,45 +1,42 @@
 package com.gleb.lemana.task.presentation.screens.shopping_list
 
-import cafe.adriel.voyager.core.model.StateScreenModel
-import cafe.adriel.voyager.core.model.screenModelScope
 import com.gleb.lemana.task.data.database.CartRepository
 import com.gleb.lemana.task.data.database.ShoppingListRepository
 import com.gleb.lemana.task.domain.model.ProductDomainModel
 import com.gleb.lemana.task.domain.service.ProductsService
+import com.gleb.lemana.task.presentation.base.BaseViewModel
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.launch
 
-class ShoppingListScreenModel(
+class ShoppingListViewModel(
     private val productsService: ProductsService,
     private val shoppingListRepository: ShoppingListRepository,
     private val cartRepository: CartRepository
-) : StateScreenModel<ShoppingListScreenModel.State>(State.Loading) {
+) : BaseViewModel<ShoppingListViewModel.State, ShoppingListViewModel.Intent>(State.Loading) {
 
     sealed class State {
-        object Loading : State()
+        data object Loading : State()
         data class Content(
             val products: List<ProductDomainModel>,
             val selectedItems: Set<Int>
         ) : State()
-
         data class Error(val message: String) : State()
     }
 
     sealed class Intent {
-        object LoadShoppingList : Intent()
+        data object LoadShoppingList : Intent()
         data class SelectItem(val productId: Int, val isSelected: Boolean) : Intent()
-        object AddSelectedToCart : Intent()
+        data object AddSelectedToCart : Intent()
     }
 
     private var shoppingListIds: Set<Int> = emptySet()
 
     init {
-        Napier.d(tag = "LemanaApp") { "ShoppingListScreenModel init" }
+        Napier.d(tag = "LemanaApp") { "ShoppingListViewModel init" }
         processIntent(Intent.LoadShoppingList)
     }
 
-    fun processIntent(intent: Intent) {
-        Napier.d(tag = "LemanaApp") { "ShoppingListScreenModel processIntent: $intent" }
+    override fun processIntent(intent: Intent) {
+        Napier.d(tag = "LemanaApp") { "ShoppingListViewModel processIntent: $intent" }
         when (intent) {
             is Intent.LoadShoppingList -> loadShoppingList()
             is Intent.SelectItem -> selectItem(intent.productId, intent.isSelected)
@@ -48,33 +45,23 @@ class ShoppingListScreenModel(
     }
 
     private fun loadShoppingList() {
-        Napier.d(tag = "LemanaApp") { "ShoppingListScreenModel loadShoppingList called" }
-        screenModelScope.launch {
-            mutableState.value = State.Loading
+        Napier.d(tag = "LemanaApp") { "ShoppingListViewModel loadShoppingList called" }
+        launch {
+            updateState(State.Loading)
 
-            shoppingListIds = shoppingListRepository.getAllProductIds().also {
-                Napier.d(tag = "LemanaApp") {
-                    "ShoppingListScreenModel loadShoppingList shoppingListIds: $it "
-                }
-            }
+            shoppingListIds = shoppingListRepository.getAllProductIds()
 
             if (shoppingListIds.isEmpty()) {
-                mutableState.value = State.Content(
-                    products = emptyList(),
-                    selectedItems = emptySet()
-                )
+                updateState(State.Content(emptyList(), emptySet()))
                 return@launch
             }
 
             productsService.fetchProductsByIds(shoppingListIds.toList())
                 .onSuccess { products ->
-                    mutableState.value = State.Content(
-                        products = products,
-                        selectedItems = emptySet()
-                    )
+                    updateState(State.Content(products, emptySet()))
                 }
                 .onFailure { _ ->
-                    mutableState.value = State.Error("Uuuups something went wrong")
+                    updateState(State.Error("Uuuups something went wrong"))
                 }
         }
     }
@@ -87,14 +74,14 @@ class ShoppingListScreenModel(
             } else {
                 currentState.selectedItems - productId
             }
-            mutableState.value = currentState.copy(selectedItems = updatedSelectedItems)
+            updateState(currentState.copy(selectedItems = updatedSelectedItems))
         }
     }
 
     private fun addSelectedItemsToCart() {
         val currentState = state.value
         if (currentState is State.Content) {
-            screenModelScope.launch {
+            launch {
                 currentState.selectedItems.forEach { productId ->
                     cartRepository.addProductToCart(productId)
                     shoppingListRepository.deleteProductId(productId)

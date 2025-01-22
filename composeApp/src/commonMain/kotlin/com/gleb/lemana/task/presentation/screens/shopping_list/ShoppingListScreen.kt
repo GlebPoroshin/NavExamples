@@ -22,103 +22,101 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.koin.getScreenModel
 import com.gleb.lemana.task.presentation.components.ErrorDisplayingComponent
 import com.gleb.lemana.task.presentation.components.PrimaryButton
 import com.gleb.lemana.task.presentation.components.ShoppingListItem
 import com.gleb.lemana.task.presentation.utils.Colors.primary
+import org.koin.compose.koinInject
 
-class ShoppingListScreen : Screen {
+@Composable
+fun ShoppingListScreen() {
+    val viewModel: ShoppingListViewModel = koinInject()
+    val state by viewModel.state.collectAsState()
 
-    @Composable
-    override fun Content() {
-        val screenModel: ShoppingListScreenModel = getScreenModel()
-        val state by screenModel.state.collectAsState()
-
-        when (val currentState = state) {
-            is ShoppingListScreenModel.State.Loading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = primary)
-                }
+    when (val currentState = state) {
+        is ShoppingListViewModel.State.Loading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = primary)
             }
-            is ShoppingListScreenModel.State.Content -> {
-                val products = currentState.products
-                val selectedItems = currentState.selectedItems
+        }
 
-                    if (products.isNotEmpty()) {
-                        LazyColumn(
-                            modifier = Modifier.padding(start = 16.dp, end = 24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.Top)
-                        ) {
-                            item {
-                                Text(
-                                    text = "Shopping List",
-                                    style = TextStyle(
-                                        color = primary,
-                                        fontSize = 24.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        textAlign = TextAlign.Center
+        is ShoppingListViewModel.State.Content -> {
+            val products = currentState.products
+            val selectedItems = currentState.selectedItems
+
+            if (products.isNotEmpty()) {
+                LazyColumn(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.Top)
+                ) {
+                    item {
+                        Text(
+                            text = "Shopping List",
+                            style = TextStyle(
+                                color = primary,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            modifier = Modifier.padding(vertical = 24.dp)
+                        )
+                    }
+                    items(products) { item ->
+                        val isSelected = selectedItems.contains(item.id)
+                        ShoppingListItem(
+                            title = item.title,
+                            price = item.price,
+                            imageUri = item.image,
+                            isSelected = isSelected,
+                            description = item.description,
+                            onSelectedChange = { selected ->
+                                viewModel.processIntent(
+                                    ShoppingListViewModel.Intent.SelectItem(
+                                        productId = item.id,
+                                        isSelected = selected
                                     )
                                 )
-                                Spacer(Modifier.height(32.dp))
-                            }
-                            items(products, key = { it.id }) { item ->
-                                ShoppingListItem(
-                                    price = item.price,
-                                    title = item.title,
-                                    imageUri = item.image,
-                                    description = item.description,
-                                    isSelected = item.id in selectedItems,
-                                    onSelectedChange = { isSelected ->
-                                        screenModel.processIntent(
-                                            ShoppingListScreenModel.Intent.SelectItem(
-                                                productId = item.id,
-                                                isSelected = isSelected
-                                            )
-                                        )
-                                    }
-                                )
-                            }
-                            item {
-                                PrimaryButton(
-                                    text = "Add selected to cart",
-                                    trailingIcon = Icons.Outlined.ShoppingCart,
-                                    modifier = Modifier
-                                        .padding(bottom = 6.dp),
-                                    onClick = {
-                                        screenModel.processIntent(
-                                            ShoppingListScreenModel.Intent.AddSelectedToCart
-                                        )
-                                    }
-                                )
-                            }
-                            item { Spacer(Modifier.height(64.dp)) }
-                        }
-                    } else {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            Text(
-                                modifier = Modifier.align(Alignment.Center),
-                                text = "Shopping list is empty :(",
-                                style = TextStyle(
-                                    color = primary,
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = TextAlign.Center
-                                )
+                            },
+                        )
+                    }
+                    if (selectedItems.isNotEmpty()) {
+                        item {
+                            PrimaryButton(
+                                text = "Add selected to cart",
+                                trailingIcon = Icons.Outlined.ShoppingCart,
+                                modifier = Modifier.padding(bottom = 6.dp),
+                                onClick = {
+                                    viewModel.processIntent(
+                                        ShoppingListViewModel.Intent.AddSelectedToCart
+                                    )
+                                }
                             )
                         }
                     }
+                    item { Spacer(Modifier.height(64.dp)) }
+                }
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Shopping list is empty",
+                        style = TextStyle(
+                            color = primary,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                }
             }
-            is ShoppingListScreenModel.State.Error -> {
-                ErrorDisplayingComponent(
-                    message = currentState.message,
-                    onClick = {
-                        screenModel.processIntent(ShoppingListScreenModel.Intent.LoadShoppingList)
-                    }
-                )
-            }
+        }
+
+        is ShoppingListViewModel.State.Error -> {
+            ErrorDisplayingComponent(
+                message = currentState.message,
+                onClick = { viewModel.processIntent(ShoppingListViewModel.Intent.LoadShoppingList) }
+            )
         }
     }
 }

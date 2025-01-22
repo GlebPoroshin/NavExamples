@@ -1,34 +1,41 @@
 package com.gleb.lemana.task.presentation.screens.main
 
-import cafe.adriel.voyager.core.model.StateScreenModel
-import cafe.adriel.voyager.core.model.screenModelScope
+import androidx.lifecycle.viewModelScope
 import com.gleb.lemana.task.data.database.CartRepository
 import com.gleb.lemana.task.data.database.ShoppingListRepository
 import com.gleb.lemana.task.domain.model.ProductDomainModel
 import com.gleb.lemana.task.domain.service.ProductsService
+import com.gleb.lemana.task.presentation.base.BaseViewModel
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
-class MainScreenModel(
+class MainViewModel(
     private val cartRepository: CartRepository,
     private val productsService: ProductsService,
     private val shoppingListRepository: ShoppingListRepository,
-) : StateScreenModel<MainScreenModel.State>(State.Loading) {
+) : BaseViewModel<MainViewModel.State, MainViewModel.Intent>(State.Loading) {
 
     sealed class State {
-        object Loading : State()
-        data class Content(val products: List<ProductDomainModel>) : State()
+        data object Loading : State()
+        data class Content(
+            val products: List<ProductDomainModel>,
+            val navigationState: NavigationState? = null
+        ) : State()
         data class Error(val message: String) : State()
     }
 
+    sealed class NavigationState {
+        data class ToProductDetails(val productId: Int) : NavigationState()
+    }
+
     sealed class Intent {
-        object LoadProducts : Intent()
-        object LoadMoreProducts : Intent()
+        data object LoadProducts : Intent()
+        data object LoadMoreProducts : Intent()
         data class AddToShoppingList(val productId: Int) : Intent()
         data class RemoveFromShoppingList(val productId: Int) : Intent()
         data class ChangeInCartCount(val productId: Int, val count: Int) : Intent()
+        data class NavigateToProduct(val productId: Int) : Intent()
+        data object NavigationHandled : Intent()
     }
 
     private var currentLimit = 10
@@ -39,8 +46,28 @@ class MainScreenModel(
     private var cartItems: Map<Int, Int> = emptyMap()
     private var shoppingListIds: Set<Int> = emptySet()
 
-    fun processIntent(intent: Intent) {
+    init {
+        processIntent(Intent.LoadProducts)
+        observeShoppingListChanges()
+        observeCartChanges()
+    }
+
+    override fun processIntent(intent: Intent) {
         when (intent) {
+            is Intent.NavigateToProduct -> {
+                val currentState = state.value
+                if (currentState is State.Content) {
+                    updateState(currentState.copy(
+                        navigationState = NavigationState.ToProductDetails(intent.productId)
+                    ))
+                }
+            }
+            is Intent.NavigationHandled -> {
+                val currentState = state.value
+                if (currentState is State.Content) {
+                    updateState(currentState.copy(navigationState = null))
+                }
+            }
             is Intent.LoadProducts -> loadProducts()
             is Intent.LoadMoreProducts -> loadMoreProducts()
             is Intent.AddToShoppingList -> addToShoppingList(intent.productId)
@@ -49,15 +76,9 @@ class MainScreenModel(
         }
     }
 
-    init {
-        processIntent(Intent.LoadProducts)
-        observeShoppingListChanges()
-        observeCartChanges()
-    }
-
     private fun loadProducts() {
-        screenModelScope.launch {
-            mutableState.value = State.Loading
+        viewModelScope.launch {
+            updateState(State.Loading)
             currentLimit = pageSize
 
             shoppingListIds = shoppingListRepository.getAllProductIds()
@@ -71,10 +92,10 @@ class MainScreenModel(
                             inCartCount = cartItems[product.id] ?: 0
                         )
                     }
-                    mutableState.value = State.Content(updatedProducts)
+                    updateState(State.Content(updatedProducts))
                 }
                 .onFailure { _ ->
-                    mutableState.value = State.Error("Uuuups something went wrong")
+                    updateState(State.Error("Uuuups something went wrong"))
                 }
         }
     }
@@ -82,7 +103,7 @@ class MainScreenModel(
     private fun loadMoreProducts() {
         if (isLoadingMore) return
         isLoadingMore = true
-        screenModelScope.launch {
+        viewModelScope.launch {
             val currentState = state.value
             if (currentState is State.Content) {
                 val currentProducts = currentState.products
@@ -102,7 +123,7 @@ class MainScreenModel(
                             )
                         }
                         if (updatedNewProducts.isNotEmpty()) {
-                            mutableState.value = State.Content(currentProducts + updatedNewProducts)
+                            updateState(State.Content(currentProducts + updatedNewProducts))
                         }
                         isLoadingMore = false
                     }
@@ -117,7 +138,7 @@ class MainScreenModel(
 
     private fun observeShoppingListChanges() {
         Napier.d(tag = "LemanaApp") { "observeShoppingListChanges called" }
-        screenModelScope.launch {
+        viewModelScope.launch {
             shoppingListIds = shoppingListRepository.getAllProductIds().also { savedShoppingList ->
                 Napier.d(tag = "LemanaApp") { "observeShoppingListChanges result = $savedShoppingList" }
             }
@@ -132,17 +153,19 @@ class MainScreenModel(
             val updatedProducts = currentState.products.map { product ->
                 product.copy(isLiked = product.id in shoppingListIds)
             }
-            mutableState.value = State.Content(updatedProducts).also { updatedProductList ->
-                Napier.d(tag = "LemanaApp") {
-                    "updated liked product list =${updatedProductList.products.map { it.isLiked }}"
+            updateState(
+                State.Content(updatedProducts).also { updatedProductList ->
+                    Napier.d(tag = "LemanaApp") {
+                        "updated liked product list =${updatedProductList.products.map { it.isLiked }}"
+                    }
                 }
-            }
+            )
         }
     }
 
     private fun addToShoppingList(productId: Int) {
         Napier.d(tag = "LemanaApp") { "addToShoppingList id = $productId" }
-        screenModelScope.launch {
+        viewModelScope.launch {
             shoppingListRepository.insertProductId(productId)
             observeShoppingListChanges()
         }
@@ -150,7 +173,7 @@ class MainScreenModel(
 
     private fun removeFromShoppingList(productId: Int) {
         Napier.d(tag = "LemanaApp") { "removeFromShoppingList id = $productId" }
-        screenModelScope.launch {
+        viewModelScope.launch {
             shoppingListRepository.deleteProductId(productId)
             observeShoppingListChanges()
         }
@@ -158,7 +181,7 @@ class MainScreenModel(
 
     private fun observeCartChanges() {
         Napier.d(tag = "LemanaApp") { "observeCartChanges called" }
-        screenModelScope.launch {
+        viewModelScope.launch {
             cartItems = cartRepository.getAllCartItems().also { dbCartItems ->
                 Napier.d(tag = "LemanaApp") {
                     "observeCartChanges saved cart items = $dbCartItems"
@@ -176,16 +199,18 @@ class MainScreenModel(
                 val count = cartItems[product.id] ?: 0
                 product.copy(inCartCount = count)
             }
-            mutableState.value = State.Content(updatedProducts).also { updatedProductList ->
-                Napier.d(tag = "LemanaApp") {
-                    "updated cart count product list = ${updatedProductList.products.map { it.inCartCount }}"
+            updateState(
+                State.Content(updatedProducts).also { updatedProductList ->
+                    Napier.d(tag = "LemanaApp") {
+                        "updated cart count product list = ${updatedProductList.products.map { it.inCartCount }}"
+                    }
                 }
-            }
+            )
         }
     }
 
     private fun changeInCartCount(productId: Int, count: Int) {
-        screenModelScope.launch {
+        viewModelScope.launch {
             when (count) {
                 0 -> {
                     cartRepository.removeProductFromCart(productId)

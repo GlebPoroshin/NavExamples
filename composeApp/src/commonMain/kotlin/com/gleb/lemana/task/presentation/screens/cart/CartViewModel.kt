@@ -1,25 +1,23 @@
 package com.gleb.lemana.task.presentation.screens.cart
 
-import cafe.adriel.voyager.core.model.StateScreenModel
-import cafe.adriel.voyager.core.model.screenModelScope
 import com.gleb.lemana.task.data.database.CartRepository
 import com.gleb.lemana.task.domain.model.ProductDomainModel
 import com.gleb.lemana.task.domain.service.ProductsService
-import kotlinx.coroutines.launch
+import com.gleb.lemana.task.presentation.base.BaseViewModel
 
-class CartScreenModel(
+class CartViewModel(
     private val productsService: ProductsService,
     private val cartRepository: CartRepository
-) : StateScreenModel<CartScreenModel.State>(State.Loading) {
+) : BaseViewModel<CartViewModel.State, CartViewModel.Intent>(State.Loading) {
 
     sealed class State {
-        object Loading : State()
+        data object Loading : State()
         data class Content(val products: List<ProductDomainModel>) : State()
         data class Error(val message: String) : State()
     }
 
     sealed class Intent {
-        object LoadCart : Intent()
+        data object LoadCart : Intent()
         data class ChangeItemCount(val productId: Int, val count: Int) : Intent()
         data class RemoveItem(val productId: Int) : Intent()
     }
@@ -28,7 +26,7 @@ class CartScreenModel(
         processIntent(Intent.LoadCart)
     }
 
-    fun processIntent(intent: Intent) {
+    override fun processIntent(intent: Intent) {
         when (intent) {
             is Intent.LoadCart -> loadCart()
             is Intent.ChangeItemCount -> changeItemCount(intent.productId, intent.count)
@@ -37,13 +35,13 @@ class CartScreenModel(
     }
 
     private fun loadCart() {
-        screenModelScope.launch {
-            mutableState.value = State.Loading
+        launch {
+            updateState(State.Loading)
 
             val cartItems = cartRepository.getAllCartItems()
 
             if (cartItems.isEmpty()) {
-                mutableState.value = State.Content(emptyList())
+                updateState(State.Content(emptyList()))
                 return@launch
             }
 
@@ -55,16 +53,16 @@ class CartScreenModel(
                         val count = cartItems[product.id] ?: 0
                         product.copy(inCartCount = count)
                     }
-                    mutableState.value = State.Content(updatedProducts)
+                    updateState(State.Content(updatedProducts))
                 }
                 .onFailure { _ ->
-                    mutableState.value = State.Error("Uuuups something went wrong")
+                    updateState(State.Error("Uuuups something went wrong"))
                 }
         }
     }
 
     private fun changeItemCount(productId: Int, count: Int) {
-        screenModelScope.launch {
+        launch {
             if (count <= 0) {
                 cartRepository.removeProductFromCart(productId)
             } else {
@@ -75,7 +73,7 @@ class CartScreenModel(
     }
 
     private fun removeItem(productId: Int) {
-        screenModelScope.launch {
+        launch {
             cartRepository.removeProductFromCart(productId)
             loadCart()
         }

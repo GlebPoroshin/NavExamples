@@ -1,17 +1,12 @@
 package com.gleb.lemana.task.presentation.components
 
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
@@ -31,12 +26,13 @@ import kotlinx.coroutines.flow.map
 
 @Composable
 fun ProductList(
+    isLoadingMore: Boolean,
     products: List<ProductDomainModel>,
     onLoadMore: () -> Unit,
+    onProductClick: (Int) -> Unit,
     onAddToShoppingList: (Int) -> Unit,
     onRemoveFromShoppingList: (Int) -> Unit,
     onCartCountChange: (Int, Int) -> Unit,
-    isLoadingMore: Boolean
 ) {
     val gridState = rememberLazyStaggeredGridState()
 
@@ -78,6 +74,9 @@ fun ProductList(
                 onIsLikedChanged = { isLiked ->
                     if (isLiked) onAddToShoppingList(product.id)
                     else onRemoveFromShoppingList(product.id)
+                },
+                modifier = Modifier.clickable {
+                    onProductClick(product.id)
                 }
             )
         }
