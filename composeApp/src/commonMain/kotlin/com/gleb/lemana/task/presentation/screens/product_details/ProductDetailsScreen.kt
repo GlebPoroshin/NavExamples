@@ -15,7 +15,6 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -27,32 +26,12 @@ import coil3.compose.AsyncImage
 import com.gleb.lemana.task.presentation.components.AddToCartComponent
 import com.gleb.lemana.task.presentation.components.ErrorDisplayingComponent
 import com.gleb.lemana.task.presentation.utils.Colors.primary
-import org.koin.compose.koinInject
-import org.koin.core.parameter.parametersOf
-import androidx.navigation.NavController
 
 @Composable
 fun ProductDetailsScreen(
-    productId: Int,
-    navController: NavController
+    component: ProductDetailsComponent
 ) {
-    val viewModel: ProductDetailsViewModel = koinInject { parametersOf(productId) }
-    val state by viewModel.state.collectAsState()
-
-    LaunchedEffect(state) {
-        val currentState = state
-        if (currentState is ProductDetailsViewModel.State.Content) {
-            currentState.navigationState?.let { navState ->
-                when (navState) {
-                    is ProductDetailsViewModel.NavigationState.Back -> {
-                        navController.popBackStack()
-                        viewModel.processIntent(ProductDetailsViewModel.Intent.NavigationHandled)
-                    }
-                    else -> { }
-                }
-            }
-        }
-    }
+    val state by component.state.collectAsState()
 
     when (val currentState = state) {
         is ProductDetailsViewModel.State.Loading -> {
@@ -72,9 +51,7 @@ fun ProductDetailsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
-                        onClick = { viewModel.processIntent(ProductDetailsViewModel.Intent.NavigateBack) }
-                    ) {
+                    IconButton(onClick = component::onBackClick) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 }
@@ -121,7 +98,7 @@ fun ProductDetailsScreen(
                         if (currentState.isInShoppingList) {
                             Button(
                                 onClick = { 
-                                    viewModel.processIntent(
+                                    component.onIntent(
                                         ProductDetailsViewModel.Intent.RemoveFromShoppingList
                                     )
                                 }
@@ -131,7 +108,7 @@ fun ProductDetailsScreen(
                         } else {
                             Button(
                                 onClick = { 
-                                    viewModel.processIntent(
+                                    component.onIntent(
                                         ProductDetailsViewModel.Intent.AddToShoppingList
                                     )
                                 }
@@ -143,7 +120,7 @@ fun ProductDetailsScreen(
                         AddToCartComponent(
                             inCartCount = currentState.inCartCount,
                             onCartCountChange = { count ->
-                                viewModel.processIntent(
+                                component.onIntent(
                                     ProductDetailsViewModel.Intent.ChangeCartCount(count)
                                 )
                             }
@@ -156,7 +133,7 @@ fun ProductDetailsScreen(
         is ProductDetailsViewModel.State.Error -> {
             ErrorDisplayingComponent(
                 message = currentState.message,
-                onClick = { viewModel.processIntent(ProductDetailsViewModel.Intent.LoadProduct) }
+                onClick = { component.onIntent(ProductDetailsViewModel.Intent.LoadProduct) }
             )
         }
 

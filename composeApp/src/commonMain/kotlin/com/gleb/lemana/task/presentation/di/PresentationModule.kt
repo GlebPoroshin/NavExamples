@@ -1,10 +1,13 @@
 package com.gleb.lemana.task.presentation.di
 
 import ProductDetailsViewModel
+import RootComponent
+import com.arkivanov.decompose.ComponentContext
 import com.gleb.lemana.task.presentation.screens.cart.CartViewModel
 import com.gleb.lemana.task.presentation.screens.main.MainViewModel
 import com.gleb.lemana.task.presentation.screens.shopping_list.ShoppingListViewModel
 import org.koin.dsl.module
+import org.koin.core.parameter.parametersOf
 
 val presentationModule = module {
 
@@ -36,7 +39,19 @@ val presentationModule = module {
     factory {
         CartViewModel(
             cartRepository = get(),
-            productsService = get(),
+            productsService = get()
+        )
+    }
+
+    single { (componentContext: ComponentContext) ->
+        RootComponent(
+            componentContext = componentContext,
+            mainViewModel = get(),
+            productDetailsViewModelFactory = { productId ->
+                get { parametersOf(productId) }
+            },
+            shoppingListViewModel = get(),
+            cartViewModel = get()
         )
     }
 }

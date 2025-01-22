@@ -1,5 +1,6 @@
 package com.gleb.lemana.task.presentation.screens.shopping_list
 
+import ShoppingListComponent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -26,12 +27,12 @@ import com.gleb.lemana.task.presentation.components.ErrorDisplayingComponent
 import com.gleb.lemana.task.presentation.components.PrimaryButton
 import com.gleb.lemana.task.presentation.components.ShoppingListItem
 import com.gleb.lemana.task.presentation.utils.Colors.primary
-import org.koin.compose.koinInject
 
 @Composable
-fun ShoppingListScreen() {
-    val viewModel: ShoppingListViewModel = koinInject()
-    val state by viewModel.state.collectAsState()
+fun ShoppingListScreen(
+    component: ShoppingListComponent
+) {
+    val state by component.state.collectAsState()
 
     when (val currentState = state) {
         is ShoppingListViewModel.State.Loading -> {
@@ -61,24 +62,25 @@ fun ShoppingListScreen() {
                             modifier = Modifier.padding(vertical = 24.dp)
                         )
                     }
-                    items(products) { item ->
-                        val isSelected = selectedItems.contains(item.id)
+
+                    items(products) { product ->
                         ShoppingListItem(
-                            title = item.title,
-                            price = item.price,
-                            imageUri = item.image,
-                            isSelected = isSelected,
-                            description = item.description,
-                            onSelectedChange = { selected ->
-                                viewModel.processIntent(
+                            title = product.title,
+                            price = product.price,
+                            imageUri = product.image,
+                            description = product.description,
+                            isSelected = selectedItems.contains(product.id),
+                            onSelectedChange = { isSelected ->
+                                component.onIntent(
                                     ShoppingListViewModel.Intent.SelectItem(
-                                        productId = item.id,
-                                        isSelected = selected
+                                        productId = product.id,
+                                        isSelected = isSelected
                                     )
                                 )
-                            },
+                            }
                         )
                     }
+
                     if (selectedItems.isNotEmpty()) {
                         item {
                             PrimaryButton(
@@ -86,14 +88,11 @@ fun ShoppingListScreen() {
                                 trailingIcon = Icons.Outlined.ShoppingCart,
                                 modifier = Modifier.padding(bottom = 6.dp),
                                 onClick = {
-                                    viewModel.processIntent(
-                                        ShoppingListViewModel.Intent.AddSelectedToCart
-                                    )
+                                    component.onIntent(ShoppingListViewModel.Intent.AddSelectedToCart)
                                 }
                             )
                         }
                     }
-                    item { Spacer(Modifier.height(64.dp)) }
                 }
             } else {
                 Box(
@@ -115,7 +114,7 @@ fun ShoppingListScreen() {
         is ShoppingListViewModel.State.Error -> {
             ErrorDisplayingComponent(
                 message = currentState.message,
-                onClick = { viewModel.processIntent(ShoppingListViewModel.Intent.LoadShoppingList) }
+                onClick = { component.onIntent(ShoppingListViewModel.Intent.LoadShoppingList) }
             )
         }
     }

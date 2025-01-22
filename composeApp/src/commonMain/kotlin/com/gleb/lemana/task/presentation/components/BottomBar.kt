@@ -1,5 +1,6 @@
 package com.gleb.lemana.task.presentation.components
 
+import RootComponent
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.Icon
@@ -13,14 +14,13 @@ import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.gleb.lemana.task.presentation.navigation.NavigationRoute
 import com.gleb.lemana.task.presentation.utils.Colors.onPrimary
 import com.gleb.lemana.task.presentation.utils.Colors.primary
 
 @Composable
 fun BottomBar(
-    selectedTab: NavigationRoute,
-    onTabSelected: (NavigationRoute) -> Unit,
+    selectedTab: RootComponent.Config,
+    onTabSelected: (RootComponent.Config) -> Unit,
     modifier: Modifier = Modifier
 ) {
     BottomNavigation(
@@ -31,14 +31,14 @@ fun BottomBar(
             BottomNavigationItem(
                 icon = {
                     Icon(
-                        imageVector = if (selectedTab == item.route) {
+                        imageVector = if (selectedTab::class == item.config::class) {
                             item.filledIcon
                         } else item.outlinedIcon,
                         contentDescription = null
                     )
                 },
-                selected = selectedTab == item.route,
-                onClick = { onTabSelected(item.route) },
+                selected = selectedTab::class == item.config::class,
+                onClick = { onTabSelected(item.config) },
                 selectedContentColor = onPrimary,
                 unselectedContentColor = onPrimary.copy(alpha = 0.6f)
             )
@@ -47,24 +47,24 @@ fun BottomBar(
 }
 
 private data class BottomBarItem(
-    val route: NavigationRoute,
+    val config: RootComponent.Config,
     val filledIcon: ImageVector,
     val outlinedIcon: ImageVector
 )
 
 private val bottomBarItems = listOf(
     BottomBarItem(
-        route = NavigationRoute.Main.ProductList,
+        config = RootComponent.Config.Main,
         filledIcon = Icons.Filled.Home,
         outlinedIcon = Icons.Outlined.Home
     ),
     BottomBarItem(
-        route = NavigationRoute.ShoppingList,
+        config = RootComponent.Config.ShoppingList,
         filledIcon = Icons.Filled.Favorite,
         outlinedIcon = Icons.Outlined.FavoriteBorder
     ),
     BottomBarItem(
-        route = NavigationRoute.Cart,
+        config = RootComponent.Config.Cart,
         filledIcon = Icons.Filled.ShoppingCart,
         outlinedIcon = Icons.Outlined.ShoppingCart
     )

@@ -1,43 +1,23 @@
 package com.gleb.lemana.task.presentation.screens.main
 
+import MainTabComponent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavController
 import com.gleb.lemana.task.presentation.components.ErrorDisplayingComponent
 import com.gleb.lemana.task.presentation.components.ProductList
-import com.gleb.lemana.task.presentation.navigation.NavigationRoute
 import com.gleb.lemana.task.presentation.utils.Colors.primary
-import org.koin.compose.koinInject
 
 @Composable
 fun MainScreen(
-    navController: NavController
+    component: MainTabComponent
 ) {
-    val viewModel: MainViewModel = koinInject()
-    val state by viewModel.state.collectAsState()
-
-    LaunchedEffect(state) {
-        val currentState = state
-        if (currentState is MainViewModel.State.Content) {
-            currentState.navigationState?.let { navState ->
-                when (navState) {
-                    is MainViewModel.NavigationState.ToProductDetails -> {
-                        navController.navigate(
-                            NavigationRoute.Main.ProductDetails(navState.productId)
-                        )
-                        viewModel.processIntent(MainViewModel.Intent.NavigationHandled)
-                    }
-                }
-            }
-        }
-    }
+    val state by component.state.collectAsState()
 
     when (val currentState = state) {
         is MainViewModel.State.Loading -> {
@@ -49,27 +29,27 @@ fun MainScreen(
             ProductList(
                 products = currentState.products,
                 onAddToShoppingList = { productId ->
-                    viewModel.processIntent(MainViewModel.Intent.AddToShoppingList(productId))
+                    component.onIntent(MainViewModel.Intent.AddToShoppingList(productId))
                 },
                 onRemoveFromShoppingList = { productId ->
-                    viewModel.processIntent(MainViewModel.Intent.RemoveFromShoppingList(productId))
+                    component.onIntent(MainViewModel.Intent.RemoveFromShoppingList(productId))
                 },
                 onCartCountChange = { productId, count ->
-                    viewModel.processIntent(MainViewModel.Intent.ChangeInCartCount(productId, count))
+                    component.onIntent(MainViewModel.Intent.ChangeInCartCount(productId, count))
                 },
                 onProductClick = { productId ->
-                    viewModel.processIntent(MainViewModel.Intent.NavigateToProduct(productId))
+                    component.onProductClick(productId)
                 },
                 onLoadMore = {
-                    viewModel.processIntent(MainViewModel.Intent.LoadMoreProducts)
+                    component.onIntent(MainViewModel.Intent.LoadMoreProducts)
                 },
-                isLoadingMore = viewModel.isLoadingMore
+                isLoadingMore = false // TODO: Add this to state
             )
         }
         is MainViewModel.State.Error -> {
             ErrorDisplayingComponent(
                 message = currentState.message,
-                onClick = { viewModel.processIntent(MainViewModel.Intent.LoadProducts) }
+                onClick = { component.onIntent(MainViewModel.Intent.LoadProducts) }
             )
         }
     }

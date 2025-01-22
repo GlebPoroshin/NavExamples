@@ -1,5 +1,6 @@
 package com.gleb.lemana.task.presentation.screens.cart
 
+import CartComponent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -26,9 +27,10 @@ import com.gleb.lemana.task.presentation.utils.Colors.primary
 import org.koin.compose.koinInject
 
 @Composable
-fun CartScreen() {
-    val viewModel: CartViewModel = koinInject()
-    val state by viewModel.state.collectAsState()
+fun CartScreen(
+    component: CartComponent
+) {
+    val state by component.state.collectAsState()
 
     when (val currentState = state) {
         is CartViewModel.State.Loading -> {
@@ -52,8 +54,7 @@ fun CartScreen() {
                             style = TextStyle(
                                 color = primary,
                                 fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center
+                                fontWeight = FontWeight.Bold
                             ),
                             modifier = Modifier.padding(vertical = 24.dp)
                         )
@@ -65,7 +66,7 @@ fun CartScreen() {
                             price = product.price,
                             imageUri = product.image,
                             onCountChange = { count ->
-                                viewModel.processIntent(
+                                component.onIntent(
                                     CartViewModel.Intent.ChangeItemCount(
                                         productId = product.id,
                                         count = count
@@ -95,7 +96,7 @@ fun CartScreen() {
         is CartViewModel.State.Error -> {
             ErrorDisplayingComponent(
                 message = currentState.message,
-                onClick = { viewModel.processIntent(CartViewModel.Intent.LoadCart) }
+                onClick = { component.onIntent(CartViewModel.Intent.LoadCart) }
             )
         }
     }

@@ -89,9 +89,10 @@ kotlin {
                 implementation(libs.napier)
 
                 /**
-                 * Compose Navigation
+                 * Decompose
                  */
-                implementation(libs.androidx.navigation.compose)
+                implementation(libs.decompose)
+                implementation(libs.decompose.extensions.compose)
 
                 /**
                  * KMP ViewModel
