@@ -31,13 +31,19 @@ fun BottomBar(
             BottomNavigationItem(
                 icon = {
                     Icon(
-                        imageVector = if (selectedTab::class == item.config::class) {
-                            item.filledIcon
-                        } else item.outlinedIcon,
+                        imageVector = when {
+                            selectedTab is RootComponent.Config.Main && item.config is RootComponent.Config.Main -> item.filledIcon
+                            selectedTab == item.config -> item.filledIcon
+                            else -> item.outlinedIcon
+                        },
                         contentDescription = null
                     )
                 },
-                selected = selectedTab::class == item.config::class,
+                selected = when {
+                    selectedTab is RootComponent.Config.Main && item.config is RootComponent.Config.Main -> true
+                    selectedTab == item.config -> true
+                    else -> false
+                },
                 onClick = { onTabSelected(item.config) },
                 selectedContentColor = onPrimary,
                 unselectedContentColor = onPrimary.copy(alpha = 0.6f)

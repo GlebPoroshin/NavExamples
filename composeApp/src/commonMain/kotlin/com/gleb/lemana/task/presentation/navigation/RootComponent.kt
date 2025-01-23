@@ -6,6 +6,7 @@ import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
+import com.gleb.lemana.task.presentation.navigation.MainStackComponent
 import com.gleb.lemana.task.presentation.screens.main.MainViewModel
 import com.gleb.lemana.task.presentation.screens.cart.CartViewModel
 import com.gleb.lemana.task.presentation.screens.shopping_list.ShoppingListViewModel
@@ -29,26 +30,15 @@ class RootComponent(
         childFactory = ::createChild
     )
 
-    @OptIn(DelicateDecomposeApi::class)
     private fun createChild(
         config: Config,
         componentContext: ComponentContext
     ): Child = when (config) {
         is Config.Main -> Child.Main(
-            MainTabComponent(
+            MainStackComponent(
                 componentContext = componentContext,
-                onProductSelected = { productId ->
-                    navigation.push(Config.ProductDetails(productId))
-                },
-                viewModel = mainViewModel
-            )
-        )
-        is Config.ProductDetails -> Child.ProductDetails(
-            ProductDetailsComponent(
-                componentContext = componentContext,
-                productId = config.productId,
-                onBack = { navigation.pop() },
-                viewModel = productDetailsViewModelFactory(config.productId)
+                mainViewModel = mainViewModel,
+                productDetailsViewModelFactory = productDetailsViewModelFactory
             )
         )
         is Config.ShoppingList -> Child.ShoppingList(
@@ -67,22 +57,19 @@ class RootComponent(
 
     @Serializable
     sealed interface Config {
+
         @Serializable
         data object Main : Config
-        
-        @Serializable
-        data class ProductDetails(val productId: Int) : Config
-        
+
         @Serializable
         data object ShoppingList : Config
-        
+
         @Serializable
         data object Cart : Config
     }
 
     sealed interface Child {
-        data class Main(val component: MainTabComponent) : Child
-        data class ProductDetails(val component: ProductDetailsComponent) : Child
+        data class Main(val component: MainStackComponent) : Child
         data class ShoppingList(val component: ShoppingListComponent) : Child
         data class Cart(val component: CartComponent) : Child
     }

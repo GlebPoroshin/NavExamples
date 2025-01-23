@@ -11,4 +11,5 @@ class ShoppingListComponent(
     fun onIntent(intent: ShoppingListViewModel.Intent) {
         viewModel.processIntent(intent)
     }
-} 
+}
+
