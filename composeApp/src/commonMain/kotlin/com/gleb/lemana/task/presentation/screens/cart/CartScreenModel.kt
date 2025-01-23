@@ -1,7 +1,11 @@
 package com.gleb.lemana.task.presentation.screens.cart
 
+import androidx.compose.runtime.Composable
+import cafe.adriel.voyager.core.lifecycle.DefaultScreenLifecycleOwner.onDispose
+import cafe.adriel.voyager.core.lifecycle.LifecycleEffectOnce
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
+import cafe.adriel.voyager.core.screen.Screen
 import com.gleb.lemana.task.data.database.CartRepository
 import com.gleb.lemana.task.domain.model.ProductDomainModel
 import com.gleb.lemana.task.domain.service.ProductsService

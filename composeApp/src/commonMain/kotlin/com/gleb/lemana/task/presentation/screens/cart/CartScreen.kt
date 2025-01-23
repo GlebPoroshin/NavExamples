@@ -20,18 +20,38 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cafe.adriel.voyager.core.annotation.ExperimentalVoyagerApi
+import cafe.adriel.voyager.core.lifecycle.LifecycleEffectOnce
+import cafe.adriel.voyager.core.lifecycle.ScreenLifecycleOwner
+import cafe.adriel.voyager.core.lifecycle.ScreenLifecycleProvider
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.koin.getScreenModel
+import cafe.adriel.voyager.koin.koinScreenModel
 import com.gleb.lemana.task.presentation.components.CartItem
 import com.gleb.lemana.task.presentation.components.ErrorDisplayingComponent
 import com.gleb.lemana.task.presentation.utils.Colors.primary
 
-class CartScreen : Screen {
+class CartScreenLifecycleOwner : ScreenLifecycleOwner {
+    override fun onDispose(screen: Screen) {
+        println("CartScreen is being disposed")
+    }
+}
 
+class CartScreen : Screen, ScreenLifecycleProvider {
+
+    override fun getLifecycleOwner(): ScreenLifecycleOwner {
+        return CartScreenLifecycleOwner()
+    }
+
+    @OptIn(ExperimentalVoyagerApi::class)
     @Composable
     override fun Content() {
-        val screenModel: CartScreenModel = getScreenModel()
+        val screenModel: CartScreenModel = koinScreenModel()
         val state by screenModel.state.collectAsState()
+
+        LifecycleEffectOnce {
+            // Do something
+        }
 
         when (val currentState = state) {
             is CartScreenModel.State.Loading -> {
